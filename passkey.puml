@@ -1,0 +1,31 @@
+@startuml
+
+autonumber
+
+actor Пользователь
+box Passkey аутентификация
+    participant Аутентификатор as "Аутентификатор\n(устройство пользователя\nTouch ID, Yubikey и др.)"
+    participant Frontend as "Frontend\n(браузер)"
+    participant Backend
+end box
+
+Пользователь -> Frontend: Нажимает "Вход через Passkey"
+Frontend -> Backend: POST /webauthn/authenticate
+Backend -> Backend: Генерация challenge
+Backend -> Frontend: a3g...ih64235geo7p
+Frontend --> Аутентификатор: a3g...ih64235geo7p
+Аутентификатор -> Пользователь: Запрос подтверждения\n(биометрия или PIN)
+Пользователь -> Аутентификатор: Подтверждение\n(TouchID/FaceID/PIN)
+Аутентификатор -> Аутентификатор: Подпись challenge:\nприватный ключ от (a3g...ih64235geo7p) \n = s23g23d...g56asp6o42d7he
+Аутентификатор --> Frontend: s23g23d...g56asp6o42d7he и \n[публичный ключ, при регистрации passkey]
+Frontend -> Backend: POST /webauthn/authenticate\ns23g23d...g56asp6o42d7he и \n[публичный ключ, в случае регистрации passkey]
+Backend -> Backend: Проверка публичным ключом:\ns23g23d...g56asp6o42d7he \nбыла сгенерирована из\na3g...ih64235geo7p
+alt Успешно
+    Backend -> Frontend : HTTP 200 OK\n(токен/ресурс)
+    Frontend -> Пользователь : Вход выполнен успешно
+else Ошибка
+    Backend -> Frontend : HTTP 401 Unauthorized\n(сообщение об ошибке)
+    Frontend -> Пользователь : Отображение ошибки
+end
+
+@enduml
